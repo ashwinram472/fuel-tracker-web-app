@@ -78,8 +78,8 @@ export default function FleetMap({ vehicles, selectedVehicleId, onVehicleSelect 
               <div className="font-bold text-base mb-1">{v.name}</div>
               <div className="text-gray-400 text-xs mb-2">ID: {v.id}</div>
               <div className="flex justify-between gap-4">
-                <span>Speed: {v.speed.toFixed(0)} km/h</span>
-                <span>Fuel: {v.fuelLevel.toFixed(0)}L</span>
+                <span>Speed: {(v.speed ?? 0).toFixed(0)} km/h</span>
+                <span>Fuel: {(v.fuelLevel ?? 0).toFixed(0)}L</span>
               </div>
             </div>
           </Popup>

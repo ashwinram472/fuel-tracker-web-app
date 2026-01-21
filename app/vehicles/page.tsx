@@ -26,10 +26,29 @@ export default function VehiclesPage() {
         if (isFirebaseConfigured && db) {
             const q = collection(db, "fleets", "demoFleet", "vehicles");
             const unsub = onSnapshot(q, (snap) => {
-                const rows: Vehicle[] = snap.docs.map((d) => ({
+            const rows: Vehicle[] = snap.docs.map((d) => {
+                const data = d.data();
+                return {
                     id: d.id,
-                    ...d.data()
-                } as Vehicle));
+                    name: data.name ?? `Vehicle ${d.id}`,
+                    type: data.type ?? 'truck',
+                    status: data.status ?? 'offline',
+                    location: data.location ?? { lat: 19.0760, lng: 72.8777 },
+                    heading: data.heading ?? 0,
+                    speed: data.speed ?? 0,
+                    destination: data.destination,
+                    fuelLevel: data.fuelLevel ?? 0,
+                    fuelCapacity: data.fuelCapacity ?? 100,
+                    fuelConsumptionRate: data.fuelConsumptionRate ?? 0.2,
+                    odometer: data.odometer ?? 0,
+                    safetyScore: data.safetyScore ?? 100,
+                    maintenanceStatus: data.maintenanceStatus ?? 'good',
+                    co2Emissions: data.co2Emissions ?? 0,
+                    zone: data.zone ?? 'Unknown',
+                    lastSeenAt: data.lastSeenAt,
+                    alerts: data.alerts ?? {}
+                } as Vehicle;
+            });
                 setVehicles(rows);
                 setLoading(false);
             });

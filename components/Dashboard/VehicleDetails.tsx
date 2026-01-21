@@ -37,11 +37,11 @@ export function VehicleDetails({ vehicle, onClose }: VehicleDetailsProps) {
         <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/5 p-3 rounded-lg">
                 <div className="text-gray-400 text-xs mb-1">Speed</div>
-                <div className="text-2xl font-mono font-bold">{vehicle.speed.toFixed(0)} <span className="text-sm text-gray-500">km/h</span></div>
+                <div className="text-2xl font-mono font-bold">{(vehicle.speed ?? 0).toFixed(0)} <span className="text-sm text-gray-500">km/h</span></div>
             </div>
             <div className="bg-white/5 p-3 rounded-lg">
                 <div className="text-gray-400 text-xs mb-1">Odometer</div>
-                <div className="text-xl font-mono font-bold">{vehicle.odometer.toFixed(0)} <span className="text-sm text-gray-500">km</span></div>
+                <div className="text-xl font-mono font-bold">{(vehicle.odometer ?? 0).toFixed(0)} <span className="text-sm text-gray-500">km</span></div>
             </div>
         </div>
 
@@ -50,7 +50,7 @@ export function VehicleDetails({ vehicle, onClose }: VehicleDetailsProps) {
           <div className="flex justify-between items-end mb-2">
             <h3 className="text-sm font-semibold text-gray-300">Fuel Level</h3>
             <span className={`text-xs font-mono ${isTheft ? 'text-red-400' : 'text-blue-400'}`}>
-              {vehicle.fuelLevel.toFixed(1)} / {vehicle.fuelCapacity} L
+              {(vehicle.fuelLevel ?? 0).toFixed(1)} / {vehicle.fuelCapacity ?? 100} L
             </span>
           </div>
           <div className="h-3 bg-gray-700 rounded-full overflow-hidden relative">
@@ -60,7 +60,7 @@ export function VehicleDetails({ vehicle, onClose }: VehicleDetailsProps) {
              />
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-             <span>Prediction: {((vehicle.fuelLevel / vehicle.fuelConsumptionRate)).toFixed(0)} km range</span>
+             <span>Prediction: {((vehicle.fuelLevel / (vehicle.fuelConsumptionRate || 0.1))).toFixed(0)} km range</span>
           </div>
         </div>
 
@@ -78,11 +78,11 @@ export function VehicleDetails({ vehicle, onClose }: VehicleDetailsProps) {
                   stroke="currentColor" strokeWidth="4"
                   fill="transparent"
                   strokeDasharray={175}
-                  strokeDashoffset={175 - (175 * vehicle.safetyScore) / 100}
-                  className={`${vehicle.safetyScore > 80 ? 'text-green-500' : vehicle.safetyScore > 50 ? 'text-yellow-500' : 'text-red-500'} transition-all duration-1000`}
+                  strokeDashoffset={175 - (175 * (vehicle.safetyScore ?? 100)) / 100}
+                  className={`${(vehicle.safetyScore ?? 100) > 80 ? 'text-green-500' : (vehicle.safetyScore ?? 100) > 50 ? 'text-yellow-500' : 'text-red-500'} transition-all duration-1000`}
                 />
               </svg>
-              <span className="absolute text-sm font-bold">{vehicle.safetyScore.toFixed(0)}</span>
+              <span className="absolute text-sm font-bold">{(vehicle.safetyScore ?? 100).toFixed(0)}</span>
            </div>
         </div>
 
@@ -99,7 +99,7 @@ export function VehicleDetails({ vehicle, onClose }: VehicleDetailsProps) {
         <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
                 <span className="text-gray-400">CO2 Emitted</span>
-                <span className="font-bold text-gray-200">{vehicle.co2Emissions.toFixed(1)} kg</span>
+                <span className="font-bold text-gray-200">{(vehicle.co2Emissions ?? 0).toFixed(1)} kg</span>
             </div>
              <div className="bg-white/5 p-2 rounded flex flex-col items-center justify-center gap-1">
                 <span className="text-gray-400">Current Zone</span>

@@ -40,12 +40,12 @@ export function Sidebar({ vehicles, selectedId, onSelect }: SidebarProps) {
             </div>
 
             <div className="flex justify-between text-xs text-gray-400">
-              <span>{v.speed.toFixed(0)} km/h</span>
+              <span>{(v.speed ?? 0).toFixed(0)} km/h</span>
               <div className="flex items-center gap-2">
                 {v.alerts?.fuelTheft && (
                    <span className="text-red-500 font-bold animate-pulse">⚠ THEFT</span>
                 )}
-                <span>{v.fuelLevel.toFixed(0)}L</span>
+                <span>{(v.fuelLevel ?? 0).toFixed(0)}L</span>
               </div>
             </div>
           </div>
