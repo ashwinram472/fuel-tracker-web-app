@@ -33,6 +33,8 @@ export interface Vehicle {
   zone?: string; // e.g., "North Zone", "Warehouse A"
 
   lastSeenAt: Timestamp;
+  lastExternalUpdate?: Timestamp; // Last time we heard from the physical tracker
+  rawSensorPayload?: any; // Store raw data for debugging
 
   // Alerts (transient or persistent)
   alerts?: {
