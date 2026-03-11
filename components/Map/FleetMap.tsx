@@ -4,7 +4,6 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import "leaflet-defaulticon-compatibility";
-import L from "leaflet";
 import { Vehicle } from "@/lib/types";
 import { useEffect, useRef } from "react";
 
@@ -16,6 +15,7 @@ interface FleetMapProps {
 
 // Custom Truck Icon
 const createTruckIcon = (heading: number, status: string) => {
+  const L = require('leaflet'); // Require leaflet only when running on client
   const color = status === 'moving' ? '#3b82f6' : status === 'idle' ? '#f59e0b' : '#ef4444';
 
   // Simple SVG Truck rotated by heading

@@ -2,111 +2,59 @@
 
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { collection, onSnapshot, doc, writeBatch } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { Vehicle } from "@/lib/types";
-import { generateInitialVehicles, updateVehicleState } from "@/lib/simulation";
 import { Sidebar } from "@/components/Dashboard/Sidebar";
 import { VehicleDetails } from "@/components/Dashboard/VehicleDetails";
 
 // Dynamically import Map to avoid SSR issues
 const FleetMap = dynamic(() => import("@/components/Map/FleetMap"), {
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-slate-900 flex items-center justify-center text-gray-500">Loading Map...</div>
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-slate-900 flex items-center justify-center text-gray-500">Loading Map...</div>
 });
 
 export default function VehiclesPage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [isSimulating, setIsSimulating] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    // 1. Listen to Real-time Data OR Local Fallback
+    // Listen to Real-time Tracker Data from standard GT06 bridge via internal API (bypassing Firestore Client SDK rules)
     useEffect(() => {
-        if (isFirebaseConfigured && db) {
-            const q = collection(db, "fleets", "demoFleet", "vehicles");
-            const unsub = onSnapshot(q, (snap) => {
-            const rows: Vehicle[] = snap.docs.map((d) => {
-                const data = d.data();
-                return {
-                    id: d.id,
-                    name: data.name ?? `Vehicle ${d.id}`,
-                    type: data.type ?? 'truck',
-                    status: data.status ?? 'offline',
-                    location: data.location ?? { lat: 19.0760, lng: 72.8777 },
-                    heading: data.heading ?? 0,
-                    speed: data.speed ?? 0,
-                    destination: data.destination,
-                    fuelLevel: data.fuelLevel ?? 0,
-                    fuelCapacity: data.fuelCapacity ?? 100,
-                    fuelConsumptionRate: data.fuelConsumptionRate ?? 0.2,
-                    odometer: data.odometer ?? 0,
-                    safetyScore: data.safetyScore ?? 100,
-                    maintenanceStatus: data.maintenanceStatus ?? 'good',
-                    co2Emissions: data.co2Emissions ?? 0,
-                    zone: data.zone ?? 'Unknown',
-                    lastSeenAt: data.lastSeenAt,
-                    alerts: data.alerts ?? {}
-                } as Vehicle;
-            });
-                setVehicles(rows);
-                setLoading(false);
-            });
-            return () => unsub();
-        } else {
-            console.warn("Firebase not configured. Using local state mode.");
-            setLoading(false);
-        }
-    }, []);
+        let isMounted = true;
 
-    // 2. Simulation Loop
-    useEffect(() => {
-        if (!isSimulating) return;
-
-        const interval = setInterval(async () => {
-            // Logic for both: Update logic is same, storage differs.
-            if (isFirebaseConfigured && db) {
-                const batch = writeBatch(db);
-                let updatesCount = 0;
-                vehicles.forEach(v => {
-                    const nextState = updateVehicleState(v);
-                    const ref = doc(db, "fleets", "demoFleet", "vehicles", v.id);
-                    batch.set(ref, nextState);
-                    updatesCount++;
+        const fetchVehicleData = async () => {
+            try {
+                // Prevent aggressive browser/Next.js client caching by appending timestamp and cache: no-store
+                const res = await fetch(`/api/vehicles?t=${new Date().getTime()}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
                 });
-                if (updatesCount > 0) await batch.commit();
-            } else {
-                // Local Mode Update
-                setVehicles(prev => prev.map(v => updateVehicleState(v)));
+                if (!res.ok) throw new Error("Failed to fetch");
+
+                const data = await res.json();
+                if (data.vehicle && isMounted) {
+                    setVehicles([data.vehicle]);
+                }
+            } catch (err) {
+                console.error("Error fetching live data:", err);
+            } finally {
+                if (isMounted) setLoading(false);
             }
-        }, 1000); // 1 second update rate for smoother local demo
+        };
 
-        return () => clearInterval(interval);
-    }, [isSimulating, vehicles]);
+        // Fetch immediately on load
+        fetchVehicleData();
 
-    // 3. Initial Seeding Handler
-    const handleSeed = async () => {
-        setLoading(true);
-        const initialData = generateInitialVehicles(5);
+        // Then poll every 2 seconds to simulate real-time updates without triggering Firestore Client Rules
+        const intervalId = setInterval(fetchVehicleData, 2000);
 
-        if (isFirebaseConfigured && db) {
-            const batch = writeBatch(db);
-            initialData.forEach((v, i) => {
-                const id = `TRUCK-${100 + i}`;
-                const ref = doc(db, "fleets", "demoFleet", "vehicles", id);
-                batch.set(ref, v);
-            });
-            await batch.commit();
-        } else {
-            // Local Seed
-            const localVehicles = initialData.map((v, i) => ({
-                ...v,
-                id: `TRUCK-${100 + i}`
-            }));
-            setVehicles(localVehicles);
-        }
-        setLoading(false);
-    };
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, []);
 
     const selectedVehicle = useMemo(() =>
         vehicles.find(v => v.id === selectedId),
@@ -115,7 +63,6 @@ export default function VehiclesPage() {
 
     return (
         <main className="flex h-screen w-screen bg-[var(--background)] text-[var(--foreground)] overflow-hidden">
-
             <Sidebar
                 vehicles={vehicles}
                 selectedId={selectedId}
@@ -125,30 +72,9 @@ export default function VehiclesPage() {
             <div className="flex-1 relative flex flex-col">
                 <div className="absolute top-4 left-4 right-4 z-[500] pointer-events-none flex justify-between">
                     <div className="pointer-events-auto">
-                        {!isFirebaseConfigured && (
-                            <span className="bg-yellow-600/50 text-yellow-200 px-2 py-1 rounded text-xs backdrop-blur-md">
-                                Local Demo Mode
-                            </span>
-                        )}
-                    </div>
-                    <div className="pointer-events-auto flex gap-2">
-                        {(vehicles.length === 0 && !loading) && (
-                            <button
-                                onClick={handleSeed}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-lg text-sm font-bold transition cursor-pointer"
-                            >
-                                Initialize Fleet
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setIsSimulating(!isSimulating)}
-                            className={`
-                                px-4 py-2 rounded shadow-lg text-sm font-bold transition cursor-pointer
-                                ${isSimulating ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}
-                            `}
-                        >
-                            {isSimulating ? 'Simulation Active' : 'Start Simulation'}
-                        </button>
+                        <span className="bg-green-600/50 text-green-200 px-2 py-1 rounded text-xs backdrop-blur-md">
+                            Live GT06 Stream
+                        </span>
                     </div>
                 </div>
 
