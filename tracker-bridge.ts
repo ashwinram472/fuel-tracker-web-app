@@ -12,14 +12,35 @@ if (!admin.apps.length) {
         const serviceAccount = require('./serviceAccountKey.json');
         credential = admin.credential.cert(serviceAccount);
     } catch (e) {
-        console.warn("No serviceAccountKey.json found, falling back to application default credentials.");
-        credential = admin.credential.applicationDefault(); // requires GOOGLE_APPLICATION_CREDENTIALS
+        // Fallback to environment variable (for Coolify/Vercel)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+            try {
+                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                credential = admin.credential.cert(serviceAccount);
+            } catch (err) {
+                console.error("FIREBASE_SERVICE_ACCOUNT_KEY is present but not a valid JSON");
+            }
+        }
+        
+        if (!credential) {
+            console.warn("No service account credentials found, falling back to application default credentials.");
+            credential = admin.credential.applicationDefault();
+        }
     }
 
-    admin.initializeApp({
-        credential,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
+    try {
+        const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        if (!projectId && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+             console.error("CRITICAL: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing from the environment.");
+        }
+
+        admin.initializeApp({
+            credential,
+            projectId: projectId,
+        });
+    } catch (err) {
+        console.error("Firebase Admin Init Error:", err);
+    }
 }
 
 const db = admin.firestore();
