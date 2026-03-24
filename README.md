@@ -37,4 +37,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 ## Deployment Test
-Auto-deployment triggered via Coolify webhook test.
+Auto-deployment triggered via Coolify webhook test - Version 2.0 (Gemini CLI)
