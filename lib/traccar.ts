@@ -44,17 +44,30 @@ export interface TraccarPosition {
   attributes: Record<string, unknown>;
 }
 
-async function traccarFetch(endpoint: string): Promise<Response> {
-  // Use node-fetch-compatible approach for self-signed certs
-  const url = `${TRACCAR_URL}${endpoint}`;
+import { cookies } from 'next/headers';
 
-  // Node 18+ native fetch doesn't support agent directly
-  // Use the undici dispatcher approach or fall back to http module
+async function traccarFetch(endpoint: string): Promise<Response> {
+  const url = `${TRACCAR_URL}${endpoint}`;
+  
+  // Retrieve user session cookie if it exists
+  const cookieStore = await cookies();
+  const jsessionId = cookieStore.get('JSESSIONID')?.value;
+  
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+  };
+
+  // If user is logged in natively via our /login form
+  if (jsessionId) {
+    headers['Cookie'] = `JSESSIONID=${jsessionId}`;
+  } else {
+    // Fall back to universal service account if no user is signed in 
+    // (Note: in a strict multi-tenant setup, you might throw an error here instead)
+    headers['Authorization'] = getAuthHeader();
+  }
+
   const res = await fetch(url, {
-    headers: {
-      'Authorization': getAuthHeader(),
-      'Accept': 'application/json',
-    },
+    headers,
     // @ts-expect-error - Next.js extends fetch with Node options
     agent,
   });

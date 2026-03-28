@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Vehicle } from "@/lib/types";
+import { logoutAction } from "@/app/actions/auth";
 
 const FleetMap = dynamic(() => import("@/components/Map/FleetMap"), {
     ssr: false,
@@ -14,6 +16,7 @@ const FleetMap = dynamic(() => import("@/components/Map/FleetMap"), {
 });
 
 export default function VehiclesPage() {
+    const router = useRouter();
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -82,20 +85,38 @@ export default function VehiclesPage() {
                     </span>
                 </div>
 
-                {/* Status pills */}
-                <div className="flex items-center gap-4 text-xs font-semibold">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(56, 104, 74, 0.1)' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-moving)' }}></span>
-                        <span style={{ color: 'var(--status-moving)' }}>{movingCount} Moving</span>
+                {/* Status pills and Logout */}
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 text-xs font-semibold">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(56, 104, 74, 0.1)' }}>
+                            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-moving)' }}></span>
+                            <span style={{ color: 'var(--status-moving)' }}>{movingCount} Moving</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(165, 99, 30, 0.1)' }}>
+                            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-idle)' }}></span>
+                            <span style={{ color: 'var(--status-idle)' }}>{idleCount} Idle</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(86, 94, 119, 0.1)' }}>
+                            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-offline)' }}></span>
+                            <span style={{ color: 'var(--status-offline)' }}>{offlineCount} Offline</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(165, 99, 30, 0.1)' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-idle)' }}></span>
-                        <span style={{ color: 'var(--status-idle)' }}>{idleCount} Idle</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(86, 94, 119, 0.1)' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-offline)' }}></span>
-                        <span style={{ color: 'var(--status-offline)' }}>{offlineCount} Offline</span>
-                    </div>
+
+                    <div className="w-[1px] h-6 bg-[var(--outline)] mx-1" />
+
+                    <button 
+                        onClick={async () => {
+                            await logoutAction();
+                            router.push('/login');
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--surface-container)] text-[var(--text-secondary)] hover:text-[var(--error)] hover:bg-[var(--error)] hover:bg-opacity-10 border border-[var(--outline)] transition-colors">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Sign Out
+                    </button>
                 </div>
             </div>
 
