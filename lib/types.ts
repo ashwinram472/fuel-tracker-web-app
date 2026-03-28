@@ -1,45 +1,23 @@
-import { Timestamp } from "firebase/firestore";
-
-export type VehicleStatus = 'moving' | 'idle' | 'stopped' | 'offline';
-export type MaintenanceStatus = 'good' | 'warning' | 'critical';
-
-export interface Location {
-  lat: number;
-  lng: number;
-}
+export type VehicleStatus = 'online' | 'offline' | 'unknown';
 
 export interface Vehicle {
-  id: string;
+  id: number;
   name: string;
-  type: 'truck' | 'van'; // For icon selection
+  uniqueId: string;
   status: VehicleStatus;
+  category: string | null;
 
-  // Location & Movement
-  location: Location;
-  heading: number; // 0-360
-  speed: number; // km/h
-  destination?: Location;
+  // Position data (from Traccar positions API)
+  latitude: number;
+  longitude: number;
+  speed: number;    // km/h (converted from knots)
+  course: number;   // heading 0-360
+  address: string | null;
 
-  // Fuel & Engine
-  fuelLevel: number; // liters
-  fuelCapacity: number; // liters
-  fuelConsumptionRate: number; // liters per km (avg)
-  odometer: number; // km
+  // Timestamps
+  lastUpdate: string | null;
+  fixTime: string | null;
 
-  // Unique Features
-  safetyScore: number; // 0-100
-  maintenanceStatus: MaintenanceStatus;
-  co2Emissions: number; // total kg
-  zone?: string; // e.g., "North Zone", "Warehouse A"
-
-  lastSeenAt: Timestamp;
-  lastExternalUpdate?: Timestamp; // Last time we heard from the physical tracker
-  rawSensorPayload?: any; // Store raw data for debugging
-
-  // Alerts (transient or persistent)
-  alerts?: {
-    fuelTheft?: boolean;
-    accident?: boolean;
-    maintenance?: boolean;
-  };
+  // Raw attributes from Traccar
+  attributes: Record<string, unknown>;
 }

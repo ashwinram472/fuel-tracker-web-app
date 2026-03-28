@@ -1,39 +1,38 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
+import L from "leaflet";
 import "leaflet-defaulticon-compatibility";
 import { Vehicle } from "@/lib/types";
 import { useEffect, useRef } from "react";
 
 interface FleetMapProps {
   vehicles: Vehicle[];
-  selectedVehicleId?: string | null;
-  onVehicleSelect: (id: string) => void;
+  selectedVehicleId?: number | null;
+  onVehicleSelect: (id: number | null) => void;
 }
 
-// Custom Truck Icon
-const createTruckIcon = (heading: number, status: string) => {
-  const L = require('leaflet'); // Require leaflet only when running on client
-  const color = status === 'moving' ? '#3b82f6' : status === 'idle' ? '#f59e0b' : '#ef4444';
+// Circular marker matching Flutter app's design
+const createVehicleIcon = (status: string, speed: number, isSelected: boolean) => {
+  const isOnline = status === 'online';
+  const isMoving = isOnline && speed > 0;
 
-  // Simple SVG Truck rotated by heading
+  const color = isMoving ? '#38684A' : isOnline ? '#A5631E' : '#565E77';
+  const outerSize = isSelected ? 40 : 24;
+  const innerSize = isSelected ? 18 : 14;
+
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2" style="transform: rotate(${heading}deg); width: 32px; height: 32px;">
-      <path d="M1 3h14v15H1z" /> <!-- trailer -->
-      <path d="M15 11h4l2 3v4h-6z" /> <!-- cab -->
-      <circle cx="5" cy="19" r="2" fill="#333" />
-      <circle cx="11" cy="19" r="2" fill="#333" />
-      <circle cx="19" cy="19" r="2" fill="#333" />
+    <svg xmlns="http://www.w3.org/2000/svg" width="${outerSize}" height="${outerSize}" viewBox="0 0 ${outerSize} ${outerSize}">
+      <circle cx="${outerSize / 2}" cy="${outerSize / 2}" r="${outerSize / 2}" fill="${color}" opacity="0.3"/>
+      <circle cx="${outerSize / 2}" cy="${outerSize / 2}" r="${innerSize / 2}" fill="${color}" stroke="white" stroke-width="2"/>
     </svg>
   `;
 
   return L.divIcon({
     html: svg,
-    className: 'bg-transparent',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    className: 'bg-transparent border-0',
+    iconSize: [outerSize, outerSize],
+    iconAnchor: [outerSize / 2, outerSize / 2],
   });
 };
 
@@ -45,46 +44,63 @@ export default function FleetMap({ vehicles, selectedVehicleId, onVehicleSelect 
   useEffect(() => {
     if (selectedVehicleId && mapRef.current) {
       const v = vehicles.find(v => v.id === selectedVehicleId);
-      if (v) {
-        mapRef.current.flyTo([v.location.lat, v.location.lng], 14, { animate: true });
+      if (v && v.latitude !== 0 && v.longitude !== 0) {
+        mapRef.current.flyTo([v.latitude, v.longitude], 14, { animate: true, duration: 0.8 });
       }
     }
   }, [selectedVehicleId, vehicles]);
 
-  return (
-    <MapContainer
-      center={[19.0760, 72.8777]} // Mumbai
-      zoom={9}
-      style={{ height: "100%", width: "100%", zIndex: 0 }}
-      ref={mapRef}
-      className="bg-slate-900"
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      />
+  // Default center: first vehicle or India center
+  const center = vehicles.length > 0 && vehicles[0].latitude !== 0
+    ? [vehicles[0].latitude, vehicles[0].longitude] as [number, number]
+    : [11.5, 77.5] as [number, number]; // Tamil Nadu approximate center
 
-      {vehicles.map((v) => (
-        <Marker
-          key={v.id}
-          position={[v.location.lat, v.location.lng]}
-          icon={createTruckIcon(v.heading, v.status)}
-          eventHandlers={{
-            click: () => onVehicleSelect(v.id),
-          }}
-        >
-          <Popup className="custom-popup">
-            <div className="font-sans text-sm">
-              <div className="font-bold text-base mb-1">{v.name}</div>
-              <div className="text-gray-400 text-xs mb-2">ID: {v.id}</div>
-              <div className="flex justify-between gap-4">
-                <span>Speed: {(v.speed ?? 0).toFixed(0)} km/h</span>
-                <span>Fuel: {(v.fuelLevel ?? 0).toFixed(0)}L</span>
-              </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+  return (
+    <div className="h-full w-full relative">
+      <MapContainer
+        center={center}
+        zoom={10}
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
+        ref={mapRef}
+      >
+        <TileLayer
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+
+        {vehicles.map((v) => (
+          v.latitude !== 0 && v.longitude !== 0 && (
+            <Marker
+              key={v.id}
+              position={[v.latitude, v.longitude]}
+              icon={createVehicleIcon(v.status, v.speed, v.id === selectedVehicleId)}
+              eventHandlers={{
+                click: () => onVehicleSelect(v.id),
+              }}
+            >
+              <Popup className="custom-popup">
+                <div style={{ fontFamily: 'Inter, sans-serif' }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px', color: '#1A1C19' }}>
+                    {v.name}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#565E77', marginBottom: '8px' }}>
+                    {v.uniqueId}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', fontSize: '12px', color: '#1A1C19' }}>
+                    <span>🏎 {v.speed.toFixed(0)} km/h</span>
+                    <span>🧭 {v.course.toFixed(0)}°</span>
+                  </div>
+                  {v.address && (
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#565E77', lineHeight: '1.4' }}>
+                      📍 {v.address}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
+      </MapContainer>
+    </div>
   );
 }

@@ -1,81 +1,43 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
-
-// Initialize Firebase Admin loosely. 
-// Next.js hot-reloading can cause multiple initializations
-if (!admin.apps.length) {
-    let credential;
-    try {
-        // In local dev, try picking up the service account
-        const serviceAccount = require('@/serviceAccountKey.json');
-        credential = admin.credential.cert(serviceAccount);
-    } catch (e) {
-        // Fallback to environment variable (for Coolify/Vercel)
-        if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-            try {
-                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-                credential = admin.credential.cert(serviceAccount);
-            } catch (err) {
-                console.error("FIREBASE_SERVICE_ACCOUNT_KEY is present but not a valid JSON");
-            }
-        }
-        
-        if (!credential) {
-            console.warn("No service account credentials found, falling back to application default credentials.");
-            credential = admin.credential.applicationDefault();
-        }
-    }
-
-    try {
-        const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-        if (!projectId && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-             console.error("CRITICAL: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing from the environment.");
-        }
-        
-        admin.initializeApp({
-            credential,
-            projectId: projectId,
-        });
-    } catch (err) {
-        console.error("Firebase Admin Init Error:", err);
-    }
-}
-
-const db = admin.firestore();
+import { getDevices, getPositions, knotsToKmh } from '@/lib/traccar';
+import { Vehicle } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // Use Admin SDK to bypass Firestore client security rules
-        const docSnap = await db.collection("vehicle_logs").doc("latest_Vento").get();
+        const [devices, positions] = await Promise.all([
+            getDevices(),
+            getPositions(),
+        ]);
 
-        if (!docSnap.exists) {
-            return NextResponse.json({ vehicle: null });
-        }
+        // Build a map of deviceId → position for fast lookup
+        const positionMap = new Map(positions.map(p => [p.deviceId, p]));
 
-        const data = docSnap.data();
-        if (!data) return NextResponse.json({ vehicle: null });
+        const vehicles: Vehicle[] = devices.map(device => {
+            const pos = positionMap.get(device.id);
 
-        // Format to match the Vehicle interface expected by the frontend
-        const vehicle = {
-            id: data.vehicleId || "Vento",
-            name: "Vento",
-            type: "car",
-            status: data.speed > 0 ? "moving" : (data.ignition ? "idle" : "offline"),
-            location: data.location || { lat: 19.0760, lng: 72.8777 },
-            heading: data.heading ?? 0,
-            speed: data.speed ?? 0,
-            fuelLevel: 45,
-            fuelCapacity: 55,
-            odometer: 12500,
-            lastSeenAt: data.lastSeenAt ? data.lastSeenAt.toDate().toISOString() : null,
-            alerts: {},
-        };
+            return {
+                id: device.id,
+                name: device.name,
+                uniqueId: device.uniqueId,
+                status: device.status as Vehicle['status'],
+                category: device.category,
+                latitude: pos?.latitude ?? 0,
+                longitude: pos?.longitude ?? 0,
+                speed: pos ? knotsToKmh(pos.speed) : 0,
+                course: pos?.course ?? 0,
+                address: pos?.address ?? null,
+                lastUpdate: device.lastUpdate,
+                fixTime: pos?.fixTime ?? null,
+                attributes: { ...device.attributes, ...pos?.attributes },
+            };
+        });
 
-        return NextResponse.json({ vehicle });
-    } catch (error: any) {
-        console.error("Admin API Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ vehicles });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Vehicles API Error:', message);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

@@ -1,74 +1,110 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  /* Primary - Deep Crimson (matching Flutter app) */
+  --primary: #610000;
+  --primary-container: #8B0000;
 
-  /* Custom colors for the fleet app */
-  --card-bg: #1e293b;
-  --card-border: #334155;
-  --accent-primary: #3b82f6; /* Blue */
-  --accent-success: #10b981; /* Green */
-  --accent-warning: #f59e0b; /* Amber */
-  --accent-danger: #ef4444; /* Red */
+  /* Surface hierarchy - Warm Creams */
+  --background: #FAFAF5;
+  --surface-container: #EEEEE9;
+  --surface: #FFFFFF;
+
+  /* Typography */
+  --text-primary: #1A1C19;
+  --text-secondary: #565E77;
+
+  /* Accents & Borders */
+  --outline: #E3BEB8;
+  --card-border: rgba(227, 190, 184, 0.1);
+
+  /* Status indicators (matching Flutter app) */
+  --status-moving: #38684A;
+  --status-idle: #A5631E;
+  --status-offline: #565E77;
+  --error: #BA1A1A;
 }
 
-/* Force dark mode for this app design */
 @theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card-bg: var(--card-bg);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-outline: var(--outline);
   --color-card-border: var(--card-border);
-  --color-accent-primary: var(--accent-primary);
-  --color-accent-success: var(--accent-success);
-  --color-accent-warning: var(--accent-warning);
-  --color-accent-danger: var(--accent-danger);
+  --color-status-moving: var(--status-moving);
+  --color-status-idle: var(--status-idle);
+  --color-status-offline: var(--status-offline);
+  --color-error: var(--error);
+}
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  overflow: hidden; /* Prevent body scroll for app-like feel */
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - warm cream theme */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--surface-container);
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: var(--outline);
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--text-secondary);
 }
 
-/* Leaflet Overrides for Dark Mode */
+/* Leaflet overrides for light theme */
 .leaflet-container {
-  background: #0f172a !important;
-  font-family: inherit;
+  background: var(--surface-container) !important;
+  font-family: 'Inter', sans-serif;
 }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-  background: #1e293b !important;
-  color: #f8fafc !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 12px 32px rgba(26, 28, 25, 0.06) !important;
+  border-radius: 12px !important;
 }
 .leaflet-popup-content {
-  margin: 12px !important;
+  margin: 14px 16px !important;
+  font-family: 'Inter', sans-serif !important;
 }
 .leaflet-bar a {
-  background-color: #1e293b !important;
-  color: #f8fafc !important;
-  border-bottom: 1px solid #334155 !important;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--surface-container) !important;
 }
 .leaflet-bar a:hover {
-  background-color: #334155 !important;
+  background-color: var(--surface-container) !important;
+}
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 12px 32px rgba(26, 28, 25, 0.06) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+/* Ambient shadow utility */
+.ambient-shadow {
+  box-shadow: 0 12px 32px rgba(26, 28, 25, 0.06);
 }

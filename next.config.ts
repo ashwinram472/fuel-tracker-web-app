@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Minimal config — Traccar TLS handled via NODE_TLS_REJECT_UNAUTHORIZED env var in Coolify
 };
 
 export default nextConfig;
