@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Vehicle } from "@/lib/types";
 import { logoutAction } from "@/app/actions/auth";
+import { useTraccarSocket } from "@/components/useWebSocket";
 
 const FleetMap = dynamic(() => import("@/components/Map/FleetMap"), {
     ssr: false,
@@ -17,38 +18,8 @@ const FleetMap = dynamic(() => import("@/components/Map/FleetMap"), {
 
 export default function VehiclesPage() {
     const router = useRouter();
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+    const { vehicles, loading } = useTraccarSocket();
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const fetchVehicleData = async () => {
-            try {
-                const res = await fetch(`/api/vehicles?t=${Date.now()}`, {
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                    },
-                });
-                if (!res.ok) throw new Error("Failed to fetch");
-                const data = await res.json();
-                if (data.vehicles && isMounted) {
-                    setVehicles(data.vehicles);
-                }
-            } catch (err) {
-                console.error("Error fetching live data:", err);
-            } finally {
-                if (isMounted) setLoading(false);
-            }
-        };
-
-        fetchVehicleData();
-        const intervalId = setInterval(fetchVehicleData, 5000);
-        return () => { isMounted = false; clearInterval(intervalId); };
-    }, []);
 
     const selectedVehicle = useMemo(() =>
         vehicles.find(v => v.id === selectedId),
@@ -87,7 +58,17 @@ export default function VehiclesPage() {
 
                 {/* Status pills and Logout */}
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-4 text-xs font-semibold">
+                    <button 
+                        onClick={() => router.push('/history')}
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-[var(--primary)] text-white hover:bg-[var(--primary-container)] transition-colors shadow-sm mr-2"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        Trip History
+                    </button>
+
+                    <div className="flex items-center gap-4 text-xs font-semibold hidden md:flex">
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(56, 104, 74, 0.1)' }}>
                             <span className="w-2 h-2 rounded-full" style={{ background: 'var(--status-moving)' }}></span>
                             <span style={{ color: 'var(--status-moving)' }}>{movingCount} Moving</span>

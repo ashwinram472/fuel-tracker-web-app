@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getDevices, getPositions, knotsToKmh } from '@/lib/traccar';
+import { getDevices, getPositions } from '@/lib/traccar';
+import { knotsToKmh } from '@/lib/traccar-types';
 import { Vehicle } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
